@@ -1,0 +1,98 @@
+# ===============================================================
+# SIMULACIÓN COMPLETA DE ESPECTROS DE RAYOS X (Sc–Hg)
+# Voltaje medio: 28 keV
+# Usando datos experimentales de Kα y Kβ
+# ===============================================================
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# -----------------------------
+# PARÁMETROS GLOBALES
+# -----------------------------
+E0 = 28.0   # Voltaje medio (keV)
+FWHM = 0.003  # 3 eV
+mu = 0.02
+x = 0.1
+η0 = 1e-9
+
+# -----------------------------
+# TABLA DE DATOS EXPERIMENTALES
+# -----------------------------
+datos = [
+    (21,"Sc",4.090,4.463),
+    (22,"Ti",4.907,4.934),
+    (23,"V",4.952,5.430),
+    (24,"Cr",5.414,5.947),
+    (25,"Mn",5.898,6.493),
+    (26,"Fe",6.403,7.060),
+    (27,"Co",6.930,7.652),
+    (28,"Ni",7.478,8.268),
+    (29,"Cu",8.048,8.907),
+    (30,"Zn",8.639,9.574),
+    (39,"Y",14.958,16.738),
+    (40,"Zr",15.775,17.667),
+    (41,"Nb",16.616,18.609),
+    (42,"Mo",17.479,19.607),
+    (43,"Tc",18.368,20.619),
+    (44,"Ru",19.280,21.658),
+    (45,"Rh",20.216,22.724),
+    (46,"Pd",21.177,23.820),
+    (47,"Ag",22.163,24.943),
+    (48,"Cd",23.174,26.095),
+    (72,"Hf",55.784,63.237),
+    (73,"Ta",57.534,65.222),
+    (74,"W",59.319,67.246),
+    (75,"Re",61.141,69.310),
+    (76,"Os",63.000,71.415),
+    (77,"Ir",64.897,73.562),
+    (78,"Pt",66.831,75.750),
+    (79,"Au",68.807,77.983),
+    (80,"Hg",70.819,80.256)
+]
+
+# -----------------------------
+# FUNCIONES FÍSICAS
+# -----------------------------
+def bremsstrahlung(E,Z,E0):
+    η = η0 * Z * E0
+    I = η * Z * np.maximum(E0 - E, 0)
+    return I / np.max(I)
+
+def lorentz(E, E0, FWHM):
+    g = FWHM/2
+    return (g**2)/((E-E0)**2+g**2)
+
+def caracteristicas(E,Z,E_Ka,E_Kb,E0):
+    if E0 <= E_Ka:
+        return np.zeros_like(E)
+    I_Ka,I_Kb=5,1
+    f=(E0-E_Ka)**1.67
+    return f*(I_Ka*lorentz(E,E_Ka,FWHM)+I_Kb*lorentz(E,E_Kb,FWHM))
+
+def espectro_total(E,Z,E_Ka,E_Kb,E0):
+    cont=bremsstrahlung(E,Z,E0)
+    lines=caracteristicas(E,Z,E_Ka,E_Kb,E0)
+    abs=np.exp(-mu*x*(E/E0))
+    total=(cont+lines)*abs
+    return total/np.max(total)
+
+# -----------------------------
+# SIMULACIÓN COMPLETA
+# -----------------------------
+E = np.linspace(0.1,E0,4000)
+plt.figure(figsize=(12,8),dpi=300)
+
+for Z,sym,E_Ka,E_Kb in datos:
+    I = espectro_total(E,Z,E_Ka,E_Kb,E0)
+    plt.plot(E,I,label=f"{sym} (Kα={E_Ka:.2f}, Kβ={E_Kb:.2f})",lw=1.2)
+
+plt.xlabel("Energía (keV)")
+plt.ylabel("Intensidad relativa (u.a.)")
+plt.title("Espectros ideales de rayos X (E₀ = 28 keV)\nMetales de transición Sc–Hg")
+plt.xlim(0,28)
+plt.ylim(0,1.05)
+plt.legend(fontsize=7,ncol=2)
+plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
